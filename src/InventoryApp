@@ -1,0 +1,240 @@
+package FinalProject;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+// JavaFX GUI application for inventory management system
+
+public class InventoryApp extends Application implements Navigable {
+	
+	private InventoryList inventory = new InventoryList();
+	private Stage primaryStage;
+	
+	// Home scene
+	@Override
+	public void goToHome() {
+		Button addButton = new Button("Add Item");
+		Button viewButton = new Button("View Inventory");
+		Button updateButton = new Button("Update/Delete");
+		Button exitButton = new Button("Exit");
+		
+		
+		VBox root = new VBox(15);
+		root.setStyle("-fx-alignment: center;");
+		root.getChildren().addAll(addButton, viewButton, updateButton, exitButton);
+		
+		Scene homeScene = new Scene(root, 600, 400);
+		
+		addButton.setOnAction(e -> goToAddItem());
+		viewButton.setOnAction(e -> goToViewInventory());
+		updateButton.setOnAction(e -> goToUpdateDelete());
+		exitButton.setOnAction(e -> primaryStage.close());
+		
+		primaryStage.setScene(homeScene);
+	}
+	
+	// Add item scene
+	@Override
+	public void goToAddItem() {
+		
+		Button addBackButton = new Button("Back");
+		Button addSaveButton = new Button("Save");
+		
+		TextField addIdField = new TextField();
+		Label addIdLabel = new Label("ID: ");
+		TextField addNameField = new TextField();
+		Label addNameLabel = new Label("Name: ");
+		TextField addQuantityField = new TextField();
+		Label addQuantityLabel = new Label("Quantity: ");
+		TextField addPriceField = new TextField();
+		Label addPriceLabel = new Label("Price: ");
+		TextField addCategoryField = new TextField();
+		Label addCategoryLabel = new Label("Category: ");
+		
+		VBox addRoot = new VBox(10);
+		addRoot.setStyle("-fx-alignment: center;");
+		addRoot.getChildren().addAll(
+				addIdLabel, addIdField, 
+				addNameLabel, addNameField, 
+				addQuantityLabel, addQuantityField, 
+				addPriceLabel, addPriceField, 
+				addCategoryLabel, addCategoryField,
+				addBackButton, addSaveButton
+				);
+		
+		
+		Scene addScene = new Scene(addRoot, 600, 400);
+		
+		addBackButton.setOnAction(e -> goToHome());
+		addSaveButton.setOnAction(e -> {
+			try {
+				String addIdText = addIdField.getText();
+				String addName = addNameField.getText();
+				String addQtyText = addQuantityField.getText();
+				String addPriceText = addPriceField.getText();
+				String addCategory = addCategoryField.getText();
+				
+				if (addName.isBlank() || addCategory.isBlank()) {
+					showAlert("Invalid input", "All fields are required.");
+					return;
+				}
+				
+				// Parse user input
+				int id = Integer.parseInt(addIdText);
+				int quantity = Integer.parseInt(addQtyText);
+				double price = Double.parseDouble(addPriceText);
+				
+				// Prevent duplicate item IDs
+				if (inventory.findItem(id) != null) {
+					showAlert("Duplicate ID", "An item with this ID already exists.");
+					return;
+				}
+				
+				Item newItem = new Item(id, addName, quantity, price, addCategory);
+				inventory.addItem(newItem);
+				
+				addIdField.clear();
+				addNameField.clear();
+				addQuantityField.clear();
+				addPriceField.clear();
+				addCategoryField.clear();
+				
+				
+			} catch (NumberFormatException ex) {
+				showAlert("Invalid Input", "Please enter valid ID, quantity, and price.");
+			}
+			
+		});
+		
+		primaryStage.setScene(addScene);
+	}
+	
+	// View inventory scene
+	@Override
+	public void goToViewInventory() {
+		
+		Button viewBackButton = new Button("Back");
+		
+		Label inventoryLabel = new Label("View Inventory");
+		TextArea inventoryArea = new TextArea();
+		inventoryArea.setEditable(false);
+		inventoryArea.setPrefHeight(250);
+		
+		VBox viewRoot = new VBox(10);
+		viewRoot.setStyle("-fx-alignment: center;");
+		viewRoot.getChildren().addAll(
+				inventoryLabel, inventoryArea,
+				viewBackButton
+				);
+		
+		Scene viewScene = new Scene(viewRoot, 600, 400);
+		
+		viewBackButton.setOnAction(e -> goToHome());
+		
+		//Display current inventory
+		inventoryArea.setText(inventory.toString());
+		primaryStage.setScene(viewScene);
+	}
+	
+	// Update/delete scene
+	@Override
+	public void goToUpdateDelete() {
+		
+		Button updateBackButton = new Button("Back");
+		Button updateSaveButton = new Button("Save");
+		Button deleteButton = new Button("Delete");
+		
+		Label updateTitle = new Label("Update/Delete Item");
+		TextField updateIdField = new TextField();
+		Label updateIdLabel = new Label("ID: ");
+		TextField updateQuantityField = new TextField();
+		Label updateQuantityLabel = new Label("Quantity: ");
+		
+		VBox updateRoot = new VBox(10);
+		updateRoot.setStyle("-fx-alignment: center;");
+		updateRoot.getChildren().addAll(
+				updateTitle,
+				updateIdLabel, updateIdField,
+				updateQuantityLabel, updateQuantityField,
+				updateBackButton, updateSaveButton,
+				deleteButton
+				);
+		
+		Scene updateScene = new Scene(updateRoot, 600, 400);
+		
+		updateBackButton.setOnAction(e -> goToHome());
+		updateSaveButton.setOnAction(e -> {
+			try {
+				String updateIdText = updateIdField.getText();
+				String updateQtyText = updateQuantityField.getText();
+				
+				// Parse user input
+				int id = Integer.parseInt(updateIdText);
+				int quantity = Integer.parseInt(updateQtyText);
+				
+				// Update item quantity
+				boolean updated = inventory.updateQuantity(id, quantity);
+				
+				if (updated) {
+					showAlert("Success", "Quantity updated.");
+				} else {
+					showAlert("Item not found.", "No item was found with that ID.");
+				}
+								
+				updateIdField.clear();
+				updateQuantityField.clear();
+				
+			} catch (NumberFormatException ex) {
+				showAlert("Invalid input.", "Please enter valid ID and quantity.");
+			}
+		});
+		
+		deleteButton.setOnAction(e -> {
+			try {				
+				// Parse ID and remove item
+				int id = Integer.parseInt(updateIdField.getText().trim());				
+				boolean deleted = inventory.removeItemById(id);
+				
+				if (deleted) {
+					showAlert("Success", "Item deleted.");
+					updateIdField.clear();
+				} else {
+					showAlert("Item not found.", "No item was found with that ID.");
+				}				
+				
+			} catch (NumberFormatException ex) {
+				showAlert("Invalid input.", "Please enter a valid ID.");
+			}
+			
+		});
+		
+		primaryStage.setScene(updateScene);
+	}
+	
+	// Display popup message for user feedback
+	private void showAlert(String title, String message) {
+		javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(message);
+		alert.showAndWait();
+	}
+
+	// Launch application at home scene
+	@Override
+	public void start(Stage primaryStage) {
+		this.primaryStage = primaryStage;
+		primaryStage.setTitle("Inventory Management System");
+		goToHome();
+		primaryStage.show();
+	}
+	
+	public static void main(String[] args) {
+		launch(args);
+	}
+}
